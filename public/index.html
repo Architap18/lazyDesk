@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LazyDesk – AI‑powered task declutterer</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="container">
+    <section class="hero">
+      <h1>Do less. Make progress.</h1>
+      <p class="tagline">🦥 Your AI‑powered task declutterer</p>
+    </section>
+    <section class="input-section">
+      <textarea id="tasksInput" placeholder="Paste your messy task list here…" rows="8"></textarea>
+      <div class="controls">
+        <label class="lazy-toggle">
+          <input type="checkbox" id="lazyMode" /> Lazy Mode
+        </label>
+        <button id="submitBtn" class="primary">Organize my chaos</button>
+        <button id="resetBtn" class="secondary">Reset</button>
+      </div>
+      <p class="example">Example:
+        <br />• finish report for work
+        <br />• buy groceries
+        <br />• call mom about weekend plans
+        <br />• schedule dentist appointment
+        <br />• read a chapter of a book
+      </p>
+    </section>
+    <section id="resultSection" class="result hidden">
+      <h2>Here's your organized plan</h2>
+      <div id="planContainer" class="plan"></div>
+      <div class="result-controls">
+        <button id="copyBtn" class="primary">Copy plan</button>
+      </div>
+    </section>
+    <section id="errorSection" class="error hidden"></section>
+    <footer>
+      <p>© 2026 LazyDesk – built for the “Slow and Steady” hackathon</p>
+    </footer>
+  </main>
+  <script src="script.js"></script>
+</body>
+</html>
