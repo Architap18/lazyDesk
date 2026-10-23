@@ -10,7 +10,7 @@
   <main class="container">
     <section class="hero">
       <h1>Do less. Make progress.</h1>
-      <p class="tagline">🦥 Your AI‑powered task declutterer</p>
+      <p class="tagline">AI‑powered task declutterer</p>
     </section>
     <section class="input-section">
       <textarea id="tasksInput" placeholder="Paste your messy task list here…" rows="8"></textarea>
@@ -29,16 +29,19 @@
         <br />• read a chapter of a book
       </p>
     </section>
+    <section id="allTasksSection" class="hidden">
+  <h2>All Tasks</h2>
+  <div id="allTasksList"></div>
+</section>
+    <!-- Result and plan container for organized output -->
     <section id="resultSection" class="result hidden">
-      <h2>Here's your organized plan</h2>
-      <div id="planContainer" class="plan"></div>
-      <div class="result-controls">
-        <button id="copyBtn" class="primary">Copy plan</button>
-      </div>
+      <h2>Organized Output</h2>
+      <div id="planContainer"></div>
+    <button id="copyBtn" class="secondary">Copy plan</button>
     </section>
     <section id="errorSection" class="error hidden"></section>
     <footer>
-      <p>© 2026 LazyDesk – built for the “Slow and Steady” hackathon</p>
+      <p>© 2026 LazyDesk</p>
     </footer>
   </main>
   <script src="script.js"></script>

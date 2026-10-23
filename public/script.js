@@ -1,3 +1,4 @@
+
 document.addEventListener('DOMContentLoaded', () => {
   const tasksInput = document.getElementById('tasksInput');
   const lazyMode = document.getElementById('lazyMode');
@@ -7,152 +8,231 @@ document.addEventListener('DOMContentLoaded', () => {
   const planContainer = document.getElementById('planContainer');
   const copyBtn = document.getElementById('copyBtn');
   const errorSection = document.getElementById('errorSection');
+  const allTasksSection = document.getElementById('allTasksSection');
+  const allTasksList = document.getElementById('allTasksList');
 
-  const setLoading = (loading) => {
-    submitBtn.disabled = loading;
-    submitBtn.textContent = loading ? 'Organizing...' : 'Organize my chaos';
-  };
+  let copyText = '';
 
-  const showError = (msg) => {
-    errorSection.textContent = msg;
+  function element(tag, className, text) {
+    const el = document.createElement(tag);
+    if (className) el.className = className;
+    if (text !== undefined) el.textContent = text;
+    return el;
+  }
+
+  function showError(message) {
+    errorSection.textContent = message;
     errorSection.classList.remove('hidden');
-    setTimeout(() => {
-      errorSection.classList.add('hidden');
-    }, 5000);
-  };
+  }
 
-  const clearResult = () => {
-    planContainer.innerHTML = '';
+  function clearResults() {
+    planContainer.replaceChildren();
+    allTasksList.replaceChildren();
     resultSection.classList.add('hidden');
-  };
+    allTasksSection.classList.add('hidden');
+    errorSection.classList.add('hidden');
+    copyText = '';
+  }
 
-  const renderPlan = (data) => {
-    clearResult();
-    const { summary, importantTasks, categories, priorities, effort, starterTask, dailyPlan } = data;
-    const fragment = document.createDocumentFragment();
+  function renderTaskCard(task, data) {
+    const card = element('article', 'task-card');
+    const row = element('div', 'task-top-row');
+    const title = element('div', 'title', task);
+    const checkbox = document.createElement('input');
 
-    // Summary
-    const summaryEl = document.createElement('p');
-    summaryEl.textContent = summary;
-    summaryEl.style.fontWeight = '500';
-    fragment.appendChild(summaryEl);
+    checkbox.type = 'checkbox';
+    checkbox.setAttribute('aria-label', `Mark "${task}" complete`);
 
-    // Important tasks list
-    const impHeader = document.createElement('h3');
-    impHeader.textContent = 'Top 3 Important Tasks';
-    fragment.appendChild(impHeader);
-    const impList = document.createElement('ul');
-    importantTasks.forEach(t => {
-      const li = document.createElement('li');
-      li.textContent = t;
-      impList.appendChild(li);
+    checkbox.addEventListener('change', () => {
+      title.style.textDecoration = checkbox.checked ? 'line-through' : 'none';
+      title.style.opacity = checkbox.checked ? '0.6' : '1';
     });
-    fragment.appendChild(impList);
 
-    // Daily plan lines
-    const planHeader = document.createElement('h3');
-    planHeader.textContent = 'Your Daily Plan';
-    fragment.appendChild(planHeader);
-    const lines = dailyPlan.split('\n').filter(l => l.trim() !== '');
-    lines.forEach(line => {
-      const card = document.createElement('div');
-      card.className = 'task-card';
-      const title = document.createElement('div');
-      title.className = 'title';
-      title.textContent = line;
+    row.append(title, checkbox);
+    card.appendChild(row);
 
-      const meta = document.createElement('div');
-      meta.className = 'meta';
+    const meta = element('div', 'meta');
+    const priority = data.priorities?.[task] || 'Medium';
+    const estimate = data.effort?.[task] || '30m';
 
-      // Extract task name from line (assumes format "1. Task (Priority)" or similar)
-      const match = line.match(/\d+\.\s*(.*?)(?:\s*\((High|Medium|Low)\))?$/i);
-      let taskName = match ? match[1].trim() : line.trim();
-      const priority = match && match[2] ? match[2] : priorities[taskName];
-      const est = effort[taskName];
+    meta.appendChild(
+      element('span', `badge ${priority.toLowerCase()}`, priority)
+    );
+    meta.appendChild(element('span', '', `⏱ ${estimate}`));
+    card.appendChild(meta);
 
-      if (priority) {
-        const badge = document.createElement('span');
-        badge.className = `badge ${priority.toLowerCase()}`;
-        badge.textContent = priority;
-        meta.appendChild(badge);
-      }
-      if (est) {
-        const estSpan = document.createElement('span');
-        estSpan.textContent = `⏱ ${est}`;
-        meta.appendChild(estSpan);
-      }
+    return card;
+  }
 
-      const checkbox = document.createElement('input');
-      checkbox.type = 'checkbox';
-      checkbox.setAttribute('aria-label', `Mark "${taskName}" as completed`);
-      checkbox.addEventListener('change', () => {
-        if (checkbox.checked) {
-          title.style.textDecoration = 'line-through';
-          title.style.opacity = '0.6';
-        } else {
-          title.style.textDecoration = 'none';
-          title.style.opacity = '1';
-        }
+  function renderAllTasks(data) {
+    allTasksList.replaceChildren();
+
+    const tasks = Array.isArray(data.organizedTasks)
+      ? data.organizedTasks
+      : (data.allTasks || []).map(task => ({
+          task,
+          category: 'Other',
+          priority: data.priorities?.[task] || 'Medium',
+          effort: data.effort?.[task] || '30m'
+        }));
+
+    const groups = new Map();
+
+    tasks.forEach(item => {
+      const category = item.category || 'Other';
+      if (!groups.has(category)) groups.set(category, []);
+      groups.get(category).push(item);
+    });
+
+    for (const [category, items] of groups) {
+      const group = element('div', 'all-task-group');
+      const heading = element(
+        'h3',
+        'task-category',
+        `${category} (${items.length})`
+      );
+      const list = element('div', 'category-task-list');
+
+      items.forEach(item => {
+        const li = element('div', 'all-task-item');
+        li.appendChild(element('div', 'all-task-title', item.task));
+
+        const meta = element('div', 'meta');
+        const priority = item.priority || 'Medium';
+
+        meta.appendChild(
+          element('span', `badge ${priority.toLowerCase()}`, priority)
+        );
+        meta.appendChild(
+          element('span', '', `⏱ ${item.effort || '30m'}`)
+        );
+
+        li.appendChild(meta);
+        list.appendChild(li);
       });
 
-      const topRow = document.createElement('div');
-      topRow.style.display = 'flex';
-      topRow.style.alignItems = 'center';
-      topRow.style.justifyContent = 'space-between';
-      topRow.appendChild(title);
-      topRow.appendChild(checkbox);
+      group.append(heading, list);
+      allTasksList.appendChild(group);
+    }
 
-      card.appendChild(topRow);
-      if (meta.childElementCount) card.appendChild(meta);
-      fragment.appendChild(card);
+    allTasksSection.classList.remove('hidden');
+  }
+
+  function renderPlan(data) {
+    clearResults();
+
+    planContainer.appendChild(
+      element('p', 'summary', data.summary || 'Your tasks are organized.')
+    );
+
+    planContainer.appendChild(element('h3', '', 'Top 3 Important Tasks'));
+
+    const topList = element('ul', 'top-tasks-list');
+
+    (data.importantTasks || []).forEach(task => {
+      topList.appendChild(element('li', '', task));
     });
 
-    planContainer.appendChild(fragment);
+    planContainer.appendChild(topList);
+
+    if (data.starterTask) {
+      planContainer.appendChild(
+        element('p', 'starter-task', `Start here: ${data.starterTask}`)
+      );
+    }
+
+    planContainer.appendChild(element('h3', '', 'Your Daily Plan'));
+
+    const dailyTasks = (data.dailyPlan || '')
+      .split(/\r?\n/)
+      .map(line => line.trim())
+      .filter(Boolean)
+      .map(line => line.replace(/^\d+\.\s*/, '').replace(/\s+\((High|Medium|Low)\)$/i, ''));
+
+    dailyTasks.forEach(task => {
+      planContainer.appendChild(renderTaskCard(task, data));
+    });
+
+    renderAllTasks(data);
+
+    copyText = [
+      data.summary || '',
+      '',
+      'TOP 3 IMPORTANT TASKS',
+      ...(data.importantTasks || []).map(task => `- ${task}`),
+      '',
+      'DAILY PLAN',
+      ...dailyTasks.map((task, index) => `${index + 1}. ${task} — ${data.priorities?.[task] || 'Medium'}, ${data.effort?.[task] || '30m'}`),
+      '',
+      'ALL TASKS',
+      ...(data.organizedTasks || []).map(item =>
+        `- [${item.category}] ${item.task} — ${item.priority}, ${item.effort}`
+      )
+    ].join('\n');
+
     resultSection.classList.remove('hidden');
-  };
+  }
 
   submitBtn.addEventListener('click', async () => {
-    const tasks = tasksInput.value.trim();
-    if (!tasks) {
+    errorSection.classList.add('hidden');
+
+    if (!tasksInput.value.trim()) {
       showError('Please enter your tasks.');
       return;
     }
-    setLoading(true);
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Organizing...';
+
     try {
-      const resp = await fetch('/api/plan', {
+      const response = await fetch('/api/plan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tasks, lazyMode: lazyMode.checked })
+        body: JSON.stringify({
+          tasks: tasksInput.value,
+          lazyMode: lazyMode.checked
+        })
       });
-      const json = await resp.json();
-      if (!resp.ok) {
-        showError(json.error || 'Server error');
-        setLoading(false);
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        showError(result.error || 'Unable to organize tasks.');
         return;
       }
-      const data = json.data;
-      renderPlan(data);
-    } catch (e) {
-      console.error(e);
-      showError('Network error');
+
+      if (!result.data) {
+        showError('The server returned no task data.');
+        return;
+      }
+
+      renderPlan(result.data);
+    } catch (error) {
+      console.error('LazyDesk request failed:', error);
+      showError('Network error. Check that the server is running.');
     } finally {
-      setLoading(false);
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Organize my chaos';
     }
   });
 
   resetBtn.addEventListener('click', () => {
     tasksInput.value = '';
     lazyMode.checked = false;
-    clearResult();
+    clearResults();
   });
 
-  copyBtn.addEventListener('click', () => {
-    const text = Array.from(planContainer.querySelectorAll('.title'))
-      .map(el => el.textContent)
-      .join('\n');
-    navigator.clipboard.writeText(text).then(() => {
+  copyBtn.addEventListener('click', async () => {
+    if (!copyText) return;
+
+    try {
+      await navigator.clipboard.writeText(copyText);
       copyBtn.textContent = 'Copied!';
-      setTimeout(() => (copyBtn.textContent = 'Copy plan'), 2000);
-    });
+      setTimeout(() => {
+        copyBtn.textContent = 'Copy plan';
+      }, 1500);
+    } catch (error) {
+      showError('Copy failed. Check your browser clipboard permissions.');
+    }
   });
 });
